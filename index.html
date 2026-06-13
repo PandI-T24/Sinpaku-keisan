@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カルボーネン法 計算ドリル (Wモード)</title>
+    <title>カルボーネン法 計算ドリル (W記述モード)</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -68,10 +68,14 @@
             color: #e74c3c;
         }
         .input-row {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
         }
         input[type="number"] {
-            width: 50%;
+            width: 120px;
             padding: 10px;
             font-size: 18px;
             border: 2px solid #bdc3c7;
@@ -80,7 +84,6 @@
         }
         .unit {
             font-size: 18px;
-            margin-left: 5px;
             font-weight: bold;
         }
         .action-btn {
@@ -119,16 +122,8 @@
             display: none;
             text-align: left;
         }
-        .correct {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .incorrect {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+        .correct { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .incorrect { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .explanation {
             font-size: 14px;
             font-weight: normal;
@@ -147,11 +142,11 @@
         <p style="text-align: left; margin: 0 0 10px 0; color: #666; font-size: 14px;">解きたい計算パターンを選んでください：</p>
         <button class="mode-btn" onclick="startGame(1)">
             ① 目標心拍数を求めるモード<br>
-            <span style="font-size: 12px; font-weight: normal; opacity: 0.9;">年齢・安静時・強度(%) から目標の心拍数を計算します。</span>
+            <span style="font-size: 12px; font-weight: normal; opacity: 0.9;">年齢・安静時・強度(%) から目標の心拍数を計算して入力。</span>
         </button>
         <button class="mode-btn" onclick="startGame(2)">
             ② 現在の運動強度(％)を求めるモード<br>
-            <span style="font-size: 12px; font-weight: normal; opacity: 0.9;">年齢・安静時・現在の心拍数 から強度(%)を計算します。</span>
+            <span style="font-size: 12px; font-weight: normal; opacity: 0.9;">年齢・安静時・現心拍数 から、現在の強度(%)を計算して入力。</span>
         </button>
     </div>
 
@@ -174,14 +169,13 @@
 </div>
 
 <script>
-    let currentMode = 1; // 1: 目標心拍数, 2: 運動強度
+    let currentMode = 1; 
     let currentAge, currentRestHr, currentIntensity, currentActiveHr, correctAns;
 
     function getRandom(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    // ゲーム開始
     function startGame(mode) {
         currentMode = mode;
         document.getElementById("mode-selection").style.display = "none";
@@ -197,19 +191,27 @@
         generateQuestion();
     }
 
-    // メニューに戻る
     function showMenu() {
         document.getElementById("game-area").style.display = "none";
         document.getElementById("mode-selection").style.display = "block";
         document.getElementById("main-title").innerText = "カルボーネン法 計算ドリル";
     }
 
-    // 問題生成
     function generateQuestion() {
         currentAge = getRandom(15, 65);
         currentRestHr = getRandom(55, 85);
         const maxHr = 220 - currentAge;
         const reserveHr = maxHr - currentRestHr;
+
+        // UIリセット
+        document.getElementById("user-answer").value = "";
+        document.getElementById("user-answer").disabled = false;
+        document.getElementById("submit-btn").style.display = "block";
+        document.getElementById("next-btn").style.display = "none";
+
+        const resultBox = document.getElementById("result-box");
+        resultBox.style.display = "none";
+        resultBox.className = "result";
 
         if (currentMode === 1) {
             // モード1: 目標心拍数を当てる
@@ -224,13 +226,13 @@
                 `この場合の<span>目標心拍数</span>は？（四捨五入）`;
         } else {
             // モード2: 現在の強度(%)を当てる
-            // 破綻しないように、適正な範囲(強度35%〜85%あたり)の現在心拍数を逆算して生成
-            const randomPercent = getRandom(35, 85);
+            // きれいな整数パーセントになる現在心拍数を逆算生成
+            const randomPercent = getRandom(30, 85);
             currentActiveHr = Math.round((reserveHr * (randomPercent / 100)) + currentRestHr);
             
-            // 正解は生成したパーセントそのもの
-            const currentIntensityRaw = ((currentActiveHr - restHr) / reserveHr) * 100; // テスト用、実際は↓
-            correctAns = randomPercent; 
+            // 実際のパーセントを逆算して正解にする
+            const actualPct = Math.round(((currentActiveHr - currentRestHr) / reserveHr) * 100);
+            correctAns = actualPct;
 
             document.getElementById("question-text").innerHTML = 
                 `年齢： <strong>${currentAge} 歳</strong><br>` +
@@ -238,64 +240,45 @@
                 `現在の心拍数： <strong>${currentActiveHr} 拍/分</strong><br><br>` +
                 `この場合の<span>現在の運動強度（％）</span>は？（四捨五入）`;
         }
-
-        // UIリセット
-        document.getElementById("user-answer").value = "";
-        document.getElementById("user-answer").disabled = false;
-        document.getElementById("submit-btn").style.display = "block";
-        document.getElementById("next-btn").style.display = "none";
-        
-        const resultBox = document.getElementById("result-box");
-        resultBox.style.display = "none";
-        resultBox.className = "result";
     }
 
-    // 答え合わせ
     function checkAnswer() {
         const userAnsInput = document.getElementById("user-answer").value;
-        if (userAnsInput === "") {
-            alert("数値を入力してください！");
-            return;
-        }
-
+        if (userAnsInput === "") { alert("数値を入力してください！"); return; }
         const userAns = parseInt(userAnsInput, 10);
+
         const resultBox = document.getElementById("result-box");
-        
         document.getElementById("user-answer").disabled = true;
         document.getElementById("submit-btn").style.display = "none";
         document.getElementById("next-btn").style.display = "block";
 
         const maxHr = 220 - currentAge;
         const reserveHr = maxHr - currentRestHr;
+        let exp = `<div class="explanation"><strong>【解説】</strong><br>`;
 
-        let explanationHtml = `<div class="explanation"><strong>【解説】</strong><br>`;
         if (currentMode === 1) {
             const intensityDecimal = currentIntensity / 100;
-            explanationHtml += 
-                `1. 最高心拍数： 220 - ${currentAge} = ${maxHr}<br>` +
-                `2. 予備心拍数： ${maxHr} - ${currentRestHr} = ${reserveHr}<br>` +
-                `3. 計算： (${reserveHr} × ${intensityDecimal}) + ${currentRestHr} = ${(reserveHr * intensityDecimal) + currentRestHr}<br>` +
-                `4. 四捨五入して <strong>${correctAns} 拍/分</strong>`;
+            exp += `1. 最高心拍数： 220 - ${currentAge} = ${maxHr}<br>` +
+                   `2. 予備心拍数： ${maxHr} - ${currentRestHr} = ${reserveHr}<br>` +
+                   `3. 計算： (${reserveHr} × ${intensityDecimal}) + ${currentRestHr} = ${(reserveHr * intensityDecimal) + currentRestHr}<br>` +
+                   `4. 四捨五入して <strong>${correctAns} 拍/分</strong></div>`;
         } else {
             const activeDiff = currentActiveHr - currentRestHr;
-            explanationHtml += 
-                `1. 最高心拍数： 220 - ${currentAge} = ${maxHr}<br>` +
-                `2. 予備心拍数： ${maxHr} - ${currentRestHr} = ${reserveHr}<br>` +
-                `3. 現在の心拍数 - 安静時： ${currentActiveHr} - ${currentRestHr} = ${activeDiff}<br>` +
-                `4. 計算： (${activeDiff} ÷ ${reserveHr}) × 100 = ${((activeDiff / reserveHr) * 100).toFixed(1)} ％<br>` +
-                `5. 四捨五入して <strong>${correctAns} ％</strong>`;
+            exp += `1. 最高心拍数： 220 - ${currentAge} = ${maxHr}<br>` +
+                   `2. 予備心拍数： ${maxHr} - ${currentRestHr} = ${reserveHr}<br>` +
+                   `3. 現在の心拍数 - 安静時： ${currentActiveHr} - ${currentRestHr} = ${activeDiff}<br>` +
+                   `4. 計算： (${activeDiff} ÷ ${reserveHr}) × 100 = ${((activeDiff / reserveHr) * 100).toFixed(1)} ％<br>` +
+                   `5. 四捨五入して <strong>${correctAns} ％</strong></div>`;
         }
-        explanationHtml += `</div>`;
 
         const unit = currentMode === 1 ? "拍/分" : "％";
         if (userAns === correctAns) {
-            resultBox.innerHTML = `⭕ 正解です！<br>` + explanationHtml;
+            resultBox.innerHTML = `⭕ 正解です！<br>` + exp;
             resultBox.className = "result correct";
         } else {
-            resultBox.innerHTML = `❌ 不正解...（正解は ${correctAns} ${unit}）<br>` + explanationHtml;
+            resultBox.innerHTML = `❌ 不正解...（正解は ${correctAns} ${unit}）<br>` + exp;
             resultBox.className = "result incorrect";
         }
-        
         resultBox.style.display = "block";
     }
 </script>
